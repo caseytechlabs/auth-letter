@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jazz Residences — Authorization Letter Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#152a4d;
+    --navy-dim:#3a4f74;
+    --green:#1f7a4d;
+    --paper:#fbfaf7;
+    --ink:#1c1c1c;
+    --line:#d9d5cb;
+    --accent:#b98b3e;
+    --danger:#a3382f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background:#eef0ea;
+    color:var(--ink);
+  }
+  .app{
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px 16px 80px;
+    display:grid;
+    grid-template-columns: minmax(320px, 460px) 1fr;
+    gap:24px;
+  }
+  @media (max-width: 980px){
+    .app{grid-template-columns: 1fr;}
+  }
+  header.top{
+    grid-column:1/-1;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:4px 4px 16px;
+    border-bottom:2px solid var(--navy);
+  }
+  header.top h1{
+    font-size:20px;
+    margin:0;
+    color:var(--navy);
+    letter-spacing:0.02em;
+  }
+  header.top span{
+    font-size:12px;
+    color:#6b6b6b;
+  }
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+  }
+  .panel + .panel{margin-top:18px;}
+  .panel h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--navy);
+    margin:0 0 14px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:#444;
+    margin-bottom:4px;
+  }
+  input[type=text], input[type=date], select{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid #c7c7c7;
+    border-radius:6px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+  }
+  input:focus, select:focus{
+    outline:2px solid var(--navy-dim);
+    outline-offset:1px;
+  }
+  .row{display:grid; gap:12px; margin-bottom:12px;}
+  .row.two{grid-template-columns:1fr 1fr;}
+  .row.three{grid-template-columns:1fr 1fr 1fr;}
+  .owner-select-row{display:flex; gap:8px; align-items:flex-end; margin-bottom:12px;}
+  .owner-select-row select{flex:1;}
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 14px;
+  }
+  .btn-primary{background:var(--navy); color:#fff;}
+  .btn-primary:hover{background:#0f1f3a;}
+  .btn-secondary{background:#eef1f6; color:var(--navy);}
+  .btn-secondary:hover{background:#e0e5ee;}
+  .btn-ghost{background:transparent; color:var(--danger); padding:6px 8px; font-size:12px;}
+  .btn-ghost:hover{text-decoration:underline;}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:#155c39;}
+  .btn-green:disabled, .btn-primary:disabled{background:#aab2c0; cursor:not-allowed;}
+
+  .sig-wrap{
+    border:1.5px dashed #b6bcc7;
+    border-radius:8px;
+    background:#fdfdfb;
+    position:relative;
+  }
+  canvas.sig-pad{
+    width:100%;
+    height:150px;
+    display:block;
+    touch-action:none;
+    border-radius:8px;
+    cursor:crosshair;
+  }
+  .sig-hint{
+    position:absolute; bottom:6px; left:10px;
+    font-size:11px; color:#9aa0ab; pointer-events:none;
+  }
+  .sig-actions{display:flex; gap:8px; margin-top:8px;}
+  .saved-tag{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#eaf5ee; color:var(--green);
+    font-size:12px; font-weight:600;
+    padding:4px 10px; border-radius:20px;
+    margin-bottom:10px;
+  }
+  .saved-tag.stale{background:#fbf1e6; color:var(--accent);}
+
+  .guest-table{width:100%; border-collapse:collapse; margin-top:4px;}
+  .guest-table th{
+    font-size:11px; text-align:left; color:#666; text-transform:uppercase;
+    letter-spacing:0.04em; padding:0 6px 6px; font-weight:600;
+  }
+  .guest-row td{padding:4px 6px 10px; vertical-align:top;}
+  .guest-row input, .guest-row select{font-size:13px; padding:7px 8px;}
+  .icon-btn{
+    background:#fbeceb; color:var(--danger);
+    width:28px; height:28px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; line-height:1; padding:0;
+  }
+  .add-guest{margin-top:6px;}
+
+  .actions-bar{
+    display:flex; gap:10px; flex-wrap:wrap;
+    margin-top:18px;
+  }
+  .actions-bar button{flex:1; min-width:160px; padding:12px;}
+  .status-msg{
+    font-size:12px; margin-top:10px; color:var(--green);
+    min-height:16px;
+  }
+  .status-msg.error{color:var(--danger);}
+  #pdfFallback{margin-top:6px;}
+  .pdf-fallback-link{
+    display:inline-block;
+    background:#fff4e0;
+    color:#8a5a12;
+    border:1px solid #e7c483;
+    border-radius:6px;
+    padding:9px 12px;
+    font-size:13px;
+    font-weight:600;
+    text-decoration:none;
+  }
+  .pdf-fallback-link:hover{background:#ffe9c4;}
+
+  /* ---- Letter Preview ---- */
+  .preview-shell{
+    background:#dfe2da;
+    border-radius:10px;
+    padding:20px;
+    display:flex;
+    justify-content:center;
+    overflow-x:auto;
+  }
+  #letter{
+    width:816px;
+    min-height:1056px;
+    background:#fff;
+    padding:50px 55px 60px;
+    font-family:'Segoe UI', Arial, sans-serif;
+    color:#111;
+    box-shadow:0 4px 18px rgba(0,0,0,0.15);
+    flex-shrink:0;
+  }
+  .letter-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:6px;
+  }
+  .brand-jazz{
+    font-family:'Brush Script MT', cursive;
+    font-size:34px;
+    color:var(--navy);
+    line-height:1;
+  }
+  .brand-jazz small{
+    display:block;
+    font-family:Arial, sans-serif;
+    font-size:8px;
+    letter-spacing:0.35em;
+    color:#555;
+    margin-top:2px;
+  }
+  .brand-green{
+    text-align:right;
+    font-size:20px;
+    font-weight:800;
+    color:var(--green);
+    letter-spacing:0.01em;
+  }
+  .brand-green small{
+    display:block;
+    font-size:9px;
+    font-weight:600;
+    color:#333;
+    letter-spacing:0.02em;
+    margin-top:2px;
+  }
+  .letter-title{
+    text-align:center;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:0.35em;
+    margin:18px 0 26px;
+  }
+  .fill-line{
+    display:inline-block;
+    min-width:60px;
+    border-bottom:1px solid #111;
+    padding:0 4px;
+    color:#1a3aa8;
+    font-family:'Segoe UI', Arial, sans-serif;
+    font-weight:600;
+    font-size:14px;
+    text-align:center;
+  }
+  .intro{font-size:13.5px; line-height:1.7; margin-bottom:18px;}
+  table.doc-table{width:100%; border-collapse:collapse; margin-bottom:20px;}
+  table.doc-table th, table.doc-table td{
+    border:1px solid #111;
+    padding:7px 10px;
+    font-size:12.5px;
+    vertical-align:middle;
+  }
+  table.doc-table th{
+    font-size:11px; font-weight:700; text-align:left; background:#fff;
+  }
+  table.doc-table td.gname{
+    color:#1a3aa8; font-weight:600; font-size:14px; font-family:'Segoe UI', Arial, sans-serif;
+  }
+  table.doc-table td.gid, table.doc-table td.grel{
+    color:#1a3aa8; font-weight:600; font-size:14px; font-family:'Segoe UI', Arial, sans-serif;
+  }
+  table.doc-table td.sig-cell img{max-height:34px;}
+  .cert{font-size:12px; line-height:1.65; margin-bottom:14px; text-align:justify;}
+  .given-row{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin:26px 0 4px;
+  }
+  .given-text{font-size:13px;}
+  .sig-block{text-align:center; width:280px;}
+  .sig-block img{max-height:60px; margin-bottom:-6px;}
+  .sig-block .sig-line{border-top:1px solid #111; padding-top:4px; font-size:12px;}
+  .sig-block .sig-caption{font-size:10.5px; color:#333; margin-top:2px;}
+  .rules-title{font-size:12px; font-weight:700; text-decoration:underline; margin:22px 0 6px;}
+  .rules-list{font-size:11.5px; line-height:1.6; padding-left:20px; margin:0 0 16px;}
+  .rules-list li{margin-bottom:4px;}
+  .footer-note{font-size:10px; color:#999; text-align:center; margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <h1>Authorization Letter — Jazz Residences</h1>
+    <span>Fill once, reuse owner signatures next time</span>
+  </header>
+
+  <!-- ============ LEFT: FORM ============ -->
+  <div>
+
+    <div class="panel">
+      <h2>Unit Owner / Authorized Representative</h2>
+
+      <div class="owner-select-row">
+        <div style="flex:1">
+          <label for="ownerSelect">Load a saved owner</label>
+          <select id="ownerSelect">
+            <option value="">— New owner —</option>
+          </select>
+        </div>
+        <button class="btn-ghost" id="deleteOwnerBtn" title="Delete this saved owner">Delete</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="ownerName">Owner / representative name (printed)</label>
+          <input type="text" id="ownerName" placeholder="e.g. Czarina Robles - Dan Ryan Kaabay">
+        </div>
+      </div>
+
+      <label>Signature</label>
+      <div id="savedTag" style="display:none" class="saved-tag">✓ Using saved signature</div>
+      <div class="sig-wrap">
+        <canvas id="ownerSigPad" class="sig-pad"></canvas>
+        <span class="sig-hint">Draw with mouse or finger</span>
+      </div>
+      <div class="sig-actions">
+        <button class="btn-secondary" id="clearOwnerSig">Clear</button>
+        <button class="btn-green" id="saveOwnerSig">Save signature for this owner</button>
+      </div>
+      <div class="status-msg" id="ownerStatus"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Unit &amp; Period</h2>
+      <div class="row three">
+        <div>
+          <label for="tower">Tower</label>
+          <input type="text" id="tower" placeholder="A">
+        </div>
+        <div>
+          <label for="unit">Unit</label>
+          <input type="text" id="unit" placeholder="1924">
+        </div>
+        <div>
+          <label for="givenDate">Letter date</label>
+          <input type="date" id="givenDate">
+        </div>
+      </div>
+      <div class="row two">
+        <div>
+          <label for="dateFrom">Stay period — from</label>
+          <input type="date" id="dateFrom">
+        </div>
+        <div>
+          <label for="dateTo">Stay period — to</label>
+          <input type="date" id="dateTo">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Guests</h2>
+      <table class="guest-table">
+        <thead>
+          <tr>
+            <th style="width:34%">Name</th>
+            <th style="width:28%">Proof of ID</th>
+            <th style="width:28%">Relationship</th>
+            <th style="width:10%"></th>
+          </tr>
+        </thead>
+        <tbody id="guestBody"></tbody>
+      </table>
+      <button class="btn-secondary add-guest" id="addGuest">+ Add guest</button>
+    </div>
+
+    <div class="panel">
+      <div class="actions-bar">
+        <button class="btn-primary" id="downloadPdf">Download PDF</button>
+        <button class="btn-secondary" id="printLetter">Open PDF to Print</button>
+      </div>
+      <div class="status-msg" id="genStatus"></div>
+      <div id="pdfFallback"></div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: PREVIEW ============ -->
+  <div class="preview-shell">
+    <div id="letter">
+      <div class="letter-header">
+        <div class="brand-jazz">Jazz<small>R E S I D E N C E S</small></div>
+        <div class="brand-green">GREENMIST<small>PROPERTY MANAGEMENT CORP.</small></div>
+      </div>
+      <div class="letter-title">A U T H O R I Z A T I O N &nbsp; L E T T E R</div>
+
+      <div class="intro">
+        This is authorize the following guest(s) to occupy and use my unit located at Tower
+        <span class="fill-line" id="pv-tower">&nbsp;</span> Unit
+        <span class="fill-line" id="pv-unit" style="min-width:90px">&nbsp;</span> for the period
+        covering from <span class="fill-line" id="pv-from" style="min-width:100px">&nbsp;</span>
+        to <span class="fill-line" id="pv-to" style="min-width:100px">&nbsp;</span>.
+      </div>
+
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Name of Guest(s)</th>
+            <th>Signature of Guest(s)</th>
+            <th>Proof of<br>Identification</th>
+            <th>Relationship with<br>Unit Owner</th>
+          </tr>
+        </thead>
+        <tbody id="pv-guests"></tbody>
+      </table>
+
+      <div class="cert">
+        &ldquo;I certify that I am the person named on this form and that the data/information I have provided is true and correct.
+        I hereby give my full consent to the Condominium Corporation, to collect, record, organize, store, update, use,
+        consolidate, block, erase or otherwise process information, whether personal, sensitive or privileged, pertaining to
+        myself which will be used for the purpose of identity verification, processing &amp; enforcing compliance with the
+        Condominium Corporation&rsquo;s House Rules and Master Deed with Deed of Restriction, sending property-related
+        announcements and notices, billing statements, reminders and demand letters for association dues, water dues, and
+        other assessments, providing relevant product and promotional information, sending surveys or feedback forms for
+        the improvement of property management services.</div>
+
+      <div class="cert">I certify and warrant that I have secured the consent of those individuals whose personal data I have submitted through
+        this Form. I agree and understand that the personal data I have submitted will be processed pursuant to
+        Condominium Corporation&rsquo;s privacy policies and practices.&rdquo;</div>
+
+      <div class="cert">This is also to certify that I have oriented my guest(s) on the existing house rules and regulations of Jazz Residences
+        (including some of the most applicable house rules itemized below) and that any violations that will be committed
+        by my guest(s) will be my liability to the Condominium Corporation.</div>
+
+      <div class="given-row">
+        <div class="given-text">
+          Given this <span class="fill-line" id="pv-day" style="min-width:30px">&nbsp;</span> day of
+          <span class="fill-line" id="pv-month" style="min-width:70px">&nbsp;</span>, 20<span class="fill-line" id="pv-year" style="min-width:30px">&nbsp;</span>.
+        </div>
+        <div class="sig-block">
+          <div id="pv-sig-img"></div>
+          <div class="sig-line" id="pv-owner-name">&nbsp;</div>
+          <div class="sig-caption">Signature over Printed Name of<br>Unit Owner or Authorized Representative</div>
+        </div>
+      </div>
+
+      <div class="rules-title">HOUSE RULES AND REGULATIONS:</div>
+      <ol class="rules-list">
+        <li>No pets of any kind is allowed within the complex.</li>
+        <li>Jazz Residences is a No-Smoking complex, no smoking policy is observed in all common areas within the complex.</li>
+        <li>Swimming pool may be used by the authorized guest(s) provided they pay the corresponding fees (Php 150.00 for REGULAR days and Php 300.00 for HOLIDAYS. Posted swimming pool rules and regulations shall be strictly followed by all authorized guests.</li>
+        <li>Gym facilities is for the exclusive use of unit owners and tenants ONLY. Gym is off limits to guests.</li>
+        <li>No parking slot is available for guest(s).</li>
+      </ol>
+
+      <div class="rules-title">GUEST HANDLING POLICY AND PROCEDURE</div>
+      <ol class="rules-list">
+        <li>The authorization letter form should be duly filled up by the unit owner or authorized representative.</li>
+        <li>The authorization letter should be submitted at least one (1) day prior to the arrival of guest.</li>
+        <li>At least one (1) valid proof of identification is to be presented and be used as an attachment for the authorization letter. For foreigners, a copy of the passport should be presented and attached.</li>
+        <li>The guest is not allowed to move in unless the authorization letter is duly submitted and acknowledged by the Property Management Office.</li>
+        <li>The unit owner / authorized representative is responsible for the welfare of the guest during the duration of the stay inside the unit.</li>
+        <li>For security and safety purposes, guests will go through bag check-up procedures upon arrival at Jazz Residences.</li>
+        <li>For safety and security purposes, the residential units shall not be used as an office, boarding house, dormitory, transient or other &ldquo;bed space type&rdquo; establishment.</li>
+        <li>All unit owners, tenants, and/or residents of the building, guest, building personnel, contractors and service providers are REQUIRED to follow and comply with the governing House Rules and Regulations to avoid property and personal risk as well as inconvenience as a consequence of violation/s of the provisions of the House Rules.</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- state ---------------- */
+let guestIdCounter = 0;
+let guests = []; // {id, name, idType, relationship}
+let ownerSigDataUrl = null;
+let ownersIndex = []; // list of {name}
+const ID_TYPES = ["Gov't ID", "Passport", "Driver's License", "Company ID", "Student ID", "Other"];
+
+/* ---------------- signature pad ---------------- */
+const canvas = document.getElementById('ownerSigPad');
+const ctx = canvas.getContext('2d');
+let drawing = false, hasDrawn = false;
+
+function resizeCanvas(){
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if(rect.width < 5){
+    // Layout not ready yet (can happen right at page load) — try again shortly.
+    setTimeout(resizeCanvas, 100);
+    return;
+  }
+  const prevImg = hasDrawn ? canvas.toDataURL() : null;
+  canvas.width = rect.width * ratio;
+  canvas.height = 150 * ratio;
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#152a4d';
+  if(prevImg){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, rect.width, 150);
+    img.src = prevImg;
+  }
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', resizeCanvas);
+setTimeout(resizeCanvas, 50);
+
+function getPos(e){
+  const rect = canvas.getBoundingClientRect();
+  const point = e.touches ? e.touches[0] : e;
+  return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+}
+function startDraw(e){
+  e.preventDefault();
+  drawing = true;
+  hasDrawn = true;
+  const p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  markSigDirty();
+}
+function moveDraw(e){
+  if(!drawing) return;
+  e.preventDefault();
+  const p = getPos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+}
+function endDraw(){
+  if(drawing){ drawing = false; renderPreview(); }
+}
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', moveDraw);
+window.addEventListener('mouseup', endDraw);
+canvas.addEventListener('touchstart', startDraw, {passive:false});
+canvas.addEventListener('touchmove', moveDraw, {passive:false});
+canvas.addEventListener('touchend', endDraw);
+
+function markSigDirty(){
+  document.getElementById('savedTag').style.display = 'none';
+  ownerSigDataUrl = null;
+}
+
+document.getElementById('clearOwnerSig').addEventListener('click', () => {
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, 150);
+  hasDrawn = false;
+  markSigDirty();
+  renderPreview();
+});
+
+/* ---------------- storage helpers ---------------- */
+function slug(name){
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+// window.storage only exists inside Claude's artifact preview. When this
+// file is exported and opened directly in a browser, it's undefined — so
+// we fall back to the browser's own localStorage instead, keeping the
+// "save signature for reuse" feature working either way.
+const storageAPI = {
+  async get(key){
+    if(window.storage){
+      try{ return await window.storage.get(key, false); }
+      catch(e){ return null; }
+    }
+    try{
+      const raw = localStorage.getItem('authletter:' + key);
+      return raw ? { key, value: raw } : null;
+    }catch(e){ return null; }
+  },
+  async set(key, value){
+    if(window.storage){
+      try{ return await window.storage.set(key, value, false); }
+      catch(e){ return null; }
+    }
+    try{
+      localStorage.setItem('authletter:' + key, value);
+      return { key, value };
+    }catch(e){ return null; }
+  },
+  async delete(key){
+    if(window.storage){
+      try{ return await window.storage.delete(key, false); }
+      catch(e){ return null; }
+    }
+    try{
+      localStorage.removeItem('authletter:' + key);
+      return { key, deleted: true };
+    }catch(e){ return null; }
+  }
+};
+
+async function loadOwnersIndex(){
+  const res = await storageAPI.get('owners-index');
+  try{
+    ownersIndex = res ? JSON.parse(res.value) : [];
+  }catch(e){
+    ownersIndex = [];
+  }
+  populateOwnerSelect();
+}
+
+function populateOwnerSelect(){
+  const sel = document.getElementById('ownerSelect');
+  sel.innerHTML = '<option value="">— New owner —</option>';
+  ownersIndex.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.slug;
+    opt.textContent = o.name;
+    sel.appendChild(opt);
+  });
+}
+
+async function saveOwnerSignature(){
+  const name = document.getElementById('ownerName').value.trim();
+  const statusEl = document.getElementById('ownerStatus');
+  statusEl.classList.remove('error');
+  if(!name){
+    statusEl.textContent = 'Enter the owner\'s name first.';
+    statusEl.classList.add('error');
+    return;
+  }
+  if(!hasDrawn){
+    statusEl.textContent = 'Draw a signature first.';
+    statusEl.classList.add('error');
+    return;
+  }
+  const dataUrl = canvas.toDataURL('image/png');
+  const key = 'owner:' + slug(name);
+  const result = await storageAPI.set(key, JSON.stringify({ name, signature: dataUrl }));
+  if(result){
+    if(!ownersIndex.find(o => o.slug === slug(name))){
+      ownersIndex.push({ slug: slug(name), name });
+      await storageAPI.set('owners-index', JSON.stringify(ownersIndex));
+    }
+    ownerSigDataUrl = dataUrl;
+    populateOwnerSelect();
+    document.getElementById('ownerSelect').value = slug(name);
+    document.getElementById('savedTag').style.display = 'inline-flex';
+    document.getElementById('savedTag').textContent = '✓ Signature saved for ' + name;
+    statusEl.textContent = 'Saved. This owner will be available next time.';
+  } else {
+    statusEl.textContent = 'Could not save — storage unavailable here.';
+    statusEl.classList.add('error');
+  }
+  renderPreview();
+}
+
+async function loadOwner(slugVal){
+  const statusEl = document.getElementById('ownerStatus');
+  statusEl.textContent = '';
+  statusEl.classList.remove('error');
+  if(!slugVal){
+    document.getElementById('ownerName').value = '';
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, 150);
+    hasDrawn = false;
+    ownerSigDataUrl = null;
+    document.getElementById('savedTag').style.display = 'none';
+    renderPreview();
+    return;
+  }
+  const res = await storageAPI.get('owner:' + slugVal);
+  if(!res){
+    statusEl.textContent = 'Could not load that owner.';
+    statusEl.classList.add('error');
+    return;
+  }
+  try{
+    const data = JSON.parse(res.value);
+    document.getElementById('ownerName').value = data.name;
+    ownerSigDataUrl = data.signature;
+    const img = new Image();
+    img.onload = () => {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, 150);
+      ctx.drawImage(img, 0, 0, rect.width, 150);
+      hasDrawn = true;
+      renderPreview();
+    };
+    img.src = data.signature;
+    document.getElementById('savedTag').style.display = 'inline-flex';
+    document.getElementById('savedTag').textContent = '✓ Using saved signature';
+  }catch(e){
+    statusEl.textContent = 'Could not load that owner.';
+    statusEl.classList.add('error');
+  }
+}
+
+document.getElementById('ownerSelect').addEventListener('change', (e) => loadOwner(e.target.value));
+document.getElementById('saveOwnerSig').addEventListener('click', saveOwnerSignature);
+document.getElementById('ownerName').addEventListener('input', () => {
+  document.getElementById('savedTag').style.display = 'none';
+});
+
+document.getElementById('deleteOwnerBtn').addEventListener('click', async () => {
+  const sel = document.getElementById('ownerSelect');
+  const slugVal = sel.value;
+  if(!slugVal) return;
+  if(!confirm('Delete this saved owner and their signature?')) return;
+  await storageAPI.delete('owner:' + slugVal);
+  ownersIndex = ownersIndex.filter(o => o.slug !== slugVal);
+  await storageAPI.set('owners-index', JSON.stringify(ownersIndex));
+  populateOwnerSelect();
+  sel.value = '';
+  loadOwner('');
+});
+
+/* ---------------- guests ---------------- */
+function addGuestRow(prefill){
+  const id = guestIdCounter++;
+  guests.push({ id, name: prefill?.name || '', idType: prefill?.idType || ID_TYPES[0], relationship: prefill?.relationship || 'Guest' });
+  renderGuestForm();
+  renderPreview();
+}
+function removeGuestRow(id){
+  guests = guests.filter(g => g.id !== id);
+  renderGuestForm();
+  renderPreview();
+}
+function renderGuestForm(){
+  const body = document.getElementById('guestBody');
+  body.innerHTML = '';
+  guests.forEach(g => {
+    const tr = document.createElement('tr');
+    tr.className = 'guest-row';
+    tr.innerHTML = `
+      <td><input type="text" data-field="name" data-id="${g.id}" value="${escapeAttr(g.name)}" placeholder="Full name"></td>
+      <td>
+        <select data-field="idType" data-id="${g.id}">
+          ${ID_TYPES.map(t => `<option value="${t}" ${t===g.idType?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </td>
+      <td><input type="text" data-field="relationship" data-id="${g.id}" value="${escapeAttr(g.relationship)}" placeholder="Guest / Family / Tenant"></td>
+      <td><button class="icon-btn" data-remove="${g.id}" title="Remove">✕</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const g = guests.find(x => x.id == e.target.dataset.id);
+      if(g){ g[e.target.dataset.field] = e.target.value; renderPreview(); }
+    });
+  });
+  body.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => removeGuestRow(Number(btn.dataset.remove)));
+  });
+}
+function escapeAttr(s){ return (s||'').replace(/"/g, '&quot;'); }
+document.getElementById('addGuest').addEventListener('click', () => addGuestRow());
+
+/* ---------------- preview rendering ---------------- */
+function fmtDateShort(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function renderPreview(){
+  document.getElementById('pv-tower').textContent = document.getElementById('tower').value || '\u00A0';
+  document.getElementById('pv-unit').textContent = document.getElementById('unit').value || '\u00A0';
+  document.getElementById('pv-from').textContent = fmtDateShort(document.getElementById('dateFrom').value) || '\u00A0';
+  document.getElementById('pv-to').textContent = fmtDateShort(document.getElementById('dateTo').value) || '\u00A0';
+
+  const given = document.getElementById('givenDate').value;
+  if(given){
+    const d = new Date(given + 'T00:00:00');
+    document.getElementById('pv-day').textContent = d.getDate();
+    document.getElementById('pv-month').textContent = d.toLocaleDateString('en-US', { month: 'short' });
+    document.getElementById('pv-year').textContent = String(d.getFullYear()).slice(-2);
+  } else {
+    document.getElementById('pv-day').textContent = '\u00A0';
+    document.getElementById('pv-month').textContent = '\u00A0';
+    document.getElementById('pv-year').textContent = '\u00A0';
+  }
+
+  const tbody = document.getElementById('pv-guests');
+  tbody.innerHTML = '';
+  const rowsToShow = Math.max(guests.length, 4);
+  for(let i = 0; i < rowsToShow; i++){
+    const g = guests[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="gname">${g ? escapeHtml(g.name) : '&nbsp;'}</td>
+      <td></td>
+      <td class="gid">${g && g.name ? escapeHtml(g.idType) : '&nbsp;'}</td>
+      <td class="grel">${g && g.name ? escapeHtml(g.relationship) : '&nbsp;'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('pv-owner-name').textContent = document.getElementById('ownerName').value || '\u00A0';
+  const sigImgWrap = document.getElementById('pv-sig-img');
+  sigImgWrap.innerHTML = '';
+  const liveSig = hasDrawn ? canvas.toDataURL('image/png') : null;
+  if(liveSig){
+    const img = document.createElement('img');
+    img.src = liveSig;
+    sigImgWrap.appendChild(img);
+  } else {
+    sigImgWrap.innerHTML = '<div style="height:44px"></div>';
+  }
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+['tower','unit','dateFrom','dateTo','givenDate','ownerName'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderPreview);
+});
+
+/* ---------------- PDF export / print ---------------- */
+let lastPdfUrl = null; // revoke previous blob url before making a new one
+
+async function buildPdfBlob(){
+  const node = document.getElementById('letter');
+  const nodeRect = node.getBoundingClientRect(); // unscaled CSS px, matches on-screen layout
+  const canvasImg = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+  const imgData = canvasImg.toDataURL('image/jpeg', 0.95);
+  const { jsPDF } = window.jspdf;
+
+  // Build the PDF as ONE continuous page sized to the letter's actual
+  // height, instead of forcing a fixed A4 page and splitting the content
+  // across multiple pages. Mobile PDF viewers often only show page 1 by
+  // default, which made the bottom of the letter (signature, house
+  // rules) look missing. A single page guarantees everything is visible
+  // by scrolling, matching what you see in the on-screen preview.
+  const pxToPt = 72 / 96;
+  const pageWidthPt = nodeRect.width * pxToPt;
+  const pageHeightPt = nodeRect.height * pxToPt;
+  const pdf = new jsPDF({ unit: 'pt', format: [pageWidthPt, pageHeightPt] });
+  pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthPt, pageHeightPt);
+
+  const unit = document.getElementById('unit').value || 'unit';
+  const ownerN = document.getElementById('ownerName').value || 'owner';
+  const filename = `Authorization-Letter-${unit}-${slug(ownerN)}.pdf`;
+  const blob = pdf.output('blob');
+  if(lastPdfUrl) URL.revokeObjectURL(lastPdfUrl);
+  const url = URL.createObjectURL(blob);
+  lastPdfUrl = url;
+  return { url, filename };
+}
+
+function showFallbackLink(url, filename, label){
+  const wrap = document.getElementById('pdfFallback');
+  wrap.innerHTML = '';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.textContent = label;
+  a.className = 'pdf-fallback-link';
+  wrap.appendChild(a);
+}
+
+async function downloadPdf(){
+  const statusEl = document.getElementById('genStatus');
+  statusEl.classList.remove('error');
+  statusEl.textContent = 'Rendering PDF…';
+  const btn = document.getElementById('downloadPdf');
+  btn.disabled = true;
+  try{
+    const { url, filename } = await buildPdfBlob();
+    // Attempt an automatic download. On some mobile browsers this silently
+    // no-ops because the click happens after an await, so we always leave
+    // a real, tappable link behind as a guaranteed fallback.
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showFallbackLink(url, filename, '✓ PDF ready — tap here to save: ' + filename);
+    statusEl.textContent = 'If the download didn\u2019t start automatically, tap the link below.';
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = 'Could not generate PDF.';
+    statusEl.classList.add('error');
+  }
+  btn.disabled = false;
+}
+
+async function printLetter(){
+  const statusEl = document.getElementById('genStatus');
+  statusEl.classList.remove('error');
+  statusEl.textContent = 'Preparing PDF…';
+  const btn = document.getElementById('printLetter');
+  btn.disabled = true;
+  // Open the tab synchronously, before the await, so the browser still
+  // treats it as a direct result of the tap (otherwise mobile browsers
+  // block it as a popup once we're past an await).
+  let win = null;
+  try{ win = window.open('', '_blank'); }catch(e){ win = null; }
+  try{
+    const { url, filename } = await buildPdfBlob();
+    if(win){
+      win.location.href = url;
+      statusEl.textContent = 'Opened in a new tab — use its Print or Share icon.';
+    } else {
+      statusEl.textContent = 'Tap the link below to open the PDF, then print or share from there.';
+    }
+    showFallbackLink(url, filename, 'Open PDF to print / share');
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = 'Could not generate PDF.';
+    statusEl.classList.add('error');
+    if(win) win.close();
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('downloadPdf').addEventListener('click', downloadPdf);
+document.getElementById('printLetter').addEventListener('click', printLetter);
+
+/* ---------------- init ---------------- */
+(async function init(){
+  try{
+    await loadOwnersIndex();
+  }catch(e){
+    console.error('Owner list failed to load:', e);
+  }
+  addGuestRow({ name: '', idType: "Gov't ID", relationship: 'Guest' });
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('givenDate').value = today;
+  renderPreview();
+})();
+</script>
+</body>
+</html>
