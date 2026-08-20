@@ -1,0 +1,51 @@
+/* Jazz Residences letter content — kept separate from air.css so
+   Jazz-specific spacing/text tweaks never affect the Air template. */
+
+.fill-line{
+  display:inline-block;
+  min-width:60px;
+  border-bottom:1px solid #111;
+  padding:0 2px;
+  color:#1a3aa8;
+  font-family:'Segoe UI', Arial, sans-serif;
+  font-weight:600;
+  font-size:14px;
+  text-align:center;
+}
+.intro{font-size:12px; line-height:1.68; margin-bottom:10px; margin-left:35px; margin-right:35px;}
+table.doc-table{width:100%; border-collapse:collapse; margin-bottom:14px;}
+table.doc-table th, table.doc-table td{
+  border:1px solid #111;
+  padding:5px 10px;
+  font-size:12.5px;
+  vertical-align:middle;
+}
+table.doc-table th{
+  font-size:11px; font-weight:700; text-align:center; background:#fff;
+}
+table.doc-table td.gname{
+  color:#1a3aa8; font-weight:600; font-size:14px; font-family:'Segoe UI', Arial, sans-serif;
+}
+table.doc-table td.gid, table.doc-table td.grel{
+  color:#1a3aa8; font-weight:600; font-size:14px; font-family:'Segoe UI', Arial, sans-serif;
+}
+table.doc-table td.sig-cell img{max-height:34px;}
+.cert{font-size:12px; line-height:1.5; margin-bottom:9px; margin-left:35px; margin-right:35px;}
+.cert-line{text-align:justify; text-align-last:justify;}
+.intro-line{text-align:justify;}
+.cert-spaced{margin-top:32px;}
+.given-row{
+  margin:42px 0 4px;
+}
+.given-text{font-size:13px; margin-left:35px; margin-bottom:0px;}
+.sig-block{text-align:center; width:230px; margin:0 110px 0 auto;}
+.sig-block img{max-height:60px; margin-bottom:-6px;}
+.sig-block .sig-name{font-size:12px; font-weight:600; min-height:6px;}
+.sig-block .sig-line{border-top:1px solid #111; margin-top:3px;}
+.sig-block .sig-caption{font-size:12px; color:#333; margin-top:2px;}
+.rules-title{font-size:12px; font-weight:700; text-decoration:underline; margin:14px 35px 4px 35px;}
+.rules-title-plain{text-decoration:none;}
+.rules-list{font-size:12px; line-height:1.42; margin:0 35px 10px 35px;}
+.rule-item{display:flex; margin-bottom:3px; padding-left:20px;}
+.rule-num{flex:0 0 18px;}
+.rule-text{flex:1;}
