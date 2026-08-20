@@ -91,6 +91,7 @@
           <input type="date" id="dateTo">
         </div>
       </div>
+      <div class="status-msg" id="periodDateStatus"></div>
     </div>
 
     <div class="panel">
@@ -834,8 +835,18 @@ function escapeHtml(s){
 (function setupDateConstraints(){
   const dateFrom = document.getElementById('dateFrom');
   const dateTo = document.getElementById('dateTo');
+  const statusEl = document.getElementById('periodDateStatus');
   const todayStr = new Date().toISOString().slice(0,10);
   dateFrom.min = todayStr;
+
+  function warn(message){
+    statusEl.textContent = message;
+    statusEl.classList.add('error');
+  }
+  function clearWarning(){
+    statusEl.textContent = '';
+    statusEl.classList.remove('error');
+  }
 
   function syncToMin(){
     dateTo.min = dateFrom.value || todayStr;
@@ -843,6 +854,7 @@ function escapeHtml(s){
       dateTo.value = '';
       refreshDateHasValue(dateTo);
       renderPreview();
+      warn('"Stay period — to" can’t be before "from" — please pick again.');
     }
   }
   syncToMin();
@@ -850,6 +862,9 @@ function escapeHtml(s){
     if(dateFrom.value && dateFrom.value < todayStr){
       dateFrom.value = '';
       refreshDateHasValue(dateFrom);
+      warn('"Stay period — from" can’t be before today — please pick again.');
+    } else {
+      clearWarning();
     }
     syncToMin();
   });
@@ -858,6 +873,9 @@ function escapeHtml(s){
       dateTo.value = '';
       refreshDateHasValue(dateTo);
       renderPreview();
+      warn('"Stay period — to" can’t be before "from" — please pick again.');
+    } else {
+      clearWarning();
     }
   });
 })();
