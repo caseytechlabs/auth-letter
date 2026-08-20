@@ -78,17 +78,26 @@
         </div>
         <div>
           <label for="givenDate">Letter date</label>
-          <input type="date" id="givenDate">
+          <div class="date-field">
+            <input type="date" id="givenDate">
+            <span class="date-placeholder">Select date</span>
+          </div>
         </div>
       </div>
       <div class="row two">
         <div>
           <label for="dateFrom">Stay period — from</label>
-          <input type="date" id="dateFrom">
+          <div class="date-field">
+            <input type="date" id="dateFrom">
+            <span class="date-placeholder">Select date</span>
+          </div>
         </div>
         <div>
           <label for="dateTo">Stay period — to</label>
-          <input type="date" id="dateTo">
+          <div class="date-field">
+            <input type="date" id="dateTo">
+            <span class="date-placeholder">Select date</span>
+          </div>
         </div>
       </div>
     </div>
@@ -869,7 +878,7 @@ async function buildPdfBlob(){
   if(lastPdfUrl) URL.revokeObjectURL(lastPdfUrl);
   const url = URL.createObjectURL(blob);
   lastPdfUrl = url;
-  return { url, filename };
+  return { url, filename, blob };
 }
 
 function showFallbackLink(url, filename, label){
@@ -892,10 +901,37 @@ async function downloadPdf(){
   const btn = document.getElementById('downloadPdf');
   btn.disabled = true;
   try{
-    const { url, filename } = await buildPdfBlob();
-    // Attempt an automatic download. On some mobile browsers this silently
-    // no-ops because the click happens after an await, so we always leave
-    // a real, tappable link behind as a guaranteed fallback.
+    const { url, filename, blob } = await buildPdfBlob();
+
+    // On iOS/Android, an <a download> on a blob: URL is often silently
+    // ignored — the browser just opens the PDF in its viewer instead of
+    // saving it, which looks identical to the "Open PDF to Print" button.
+    // The Web Share API's file-sharing lets the user pick "Save to Files"
+    // (or similar) from the native share sheet, which is an actual save.
+    let handled = false;
+    try{
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      if(navigator.canShare && navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], title: filename });
+        statusEl.textContent = 'Choose "Save to Files" (or similar) from the share menu to download.';
+        handled = true;
+      }
+    }catch(shareErr){
+      if(shareErr && shareErr.name === 'AbortError'){
+        statusEl.textContent = '';
+        handled = true;
+      } else {
+        console.warn('Share failed, falling back to direct download link', shareErr);
+      }
+    }
+    if(handled){
+      btn.disabled = false;
+      return;
+    }
+
+    // Desktop (and any browser without file sharing) path: attempt an
+    // automatic download, and always leave a real, tappable link behind
+    // as a guaranteed fallback.
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
@@ -946,6 +982,15 @@ document.getElementById('downloadPdf').addEventListener('click', downloadPdf);
 document.getElementById('printLetter').addEventListener('click', printLetter);
 
 /* ---------------- init ---------------- */
+function refreshDatePlaceholder(input){
+  const wrap = input.closest('.date-field');
+  if(wrap) wrap.classList.toggle('is-empty', !input.value);
+}
+document.querySelectorAll('input[type=date]').forEach(input => {
+  refreshDatePlaceholder(input);
+  input.addEventListener('input', () => refreshDatePlaceholder(input));
+});
+
 (async function init(){
   applyCondoBody();
   try{
@@ -955,7 +1000,9 @@ document.getElementById('printLetter').addEventListener('click', printLetter);
   }
   addGuestRow({ name: '', idType: "Gov't ID", relationship: 'Guest' });
   const today = new Date().toISOString().slice(0,10);
-  document.getElementById('givenDate').value = today;
+  const givenDateEl = document.getElementById('givenDate');
+  givenDateEl.value = today;
+  refreshDatePlaceholder(givenDateEl);
   renderPreview();
 })();
 </script>
