@@ -18,6 +18,9 @@ body{
   font-family:'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background:#eef0ea;
   color:var(--ink);
+  -webkit-text-size-adjust:100%;
+  -ms-text-size-adjust:100%;
+  text-size-adjust:100%;
 }
 .app{
   max-width:1400px;
@@ -206,6 +209,9 @@ canvas.sig-pad{
   box-shadow:0 4px 18px rgba(0,0,0,0.15);
   flex-shrink:0;
   transform-origin: top left;
+  -webkit-text-size-adjust:100%;
+  -ms-text-size-adjust:100%;
+  text-size-adjust:100%;
 }
 #pv-sig-img{
   height:20px;
