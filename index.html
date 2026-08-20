@@ -78,26 +78,17 @@
         </div>
         <div>
           <label for="givenDate">Letter date</label>
-          <div class="date-field">
-            <input type="date" id="givenDate">
-            <span class="date-placeholder">Select date</span>
-          </div>
+          <input type="date" id="givenDate">
         </div>
       </div>
       <div class="row two">
         <div>
           <label for="dateFrom">Stay period — from</label>
-          <div class="date-field">
-            <input type="date" id="dateFrom">
-            <span class="date-placeholder">Select date</span>
-          </div>
+          <input type="date" id="dateFrom">
         </div>
         <div>
           <label for="dateTo">Stay period — to</label>
-          <div class="date-field">
-            <input type="date" id="dateTo">
-            <span class="date-placeholder">Select date</span>
-          </div>
+          <input type="date" id="dateTo">
         </div>
       </div>
     </div>
@@ -982,15 +973,6 @@ document.getElementById('downloadPdf').addEventListener('click', downloadPdf);
 document.getElementById('printLetter').addEventListener('click', printLetter);
 
 /* ---------------- init ---------------- */
-function refreshDatePlaceholder(input){
-  const wrap = input.closest('.date-field');
-  if(wrap) wrap.classList.toggle('is-empty', !input.value);
-}
-document.querySelectorAll('input[type=date]').forEach(input => {
-  refreshDatePlaceholder(input);
-  input.addEventListener('input', () => refreshDatePlaceholder(input));
-});
-
 (async function init(){
   applyCondoBody();
   try{
@@ -1000,9 +982,7 @@ document.querySelectorAll('input[type=date]').forEach(input => {
   }
   addGuestRow({ name: '', idType: "Gov't ID", relationship: 'Guest' });
   const today = new Date().toISOString().slice(0,10);
-  const givenDateEl = document.getElementById('givenDate');
-  givenDateEl.value = today;
-  refreshDatePlaceholder(givenDateEl);
+  document.getElementById('givenDate').value = today;
   renderPreview();
 })();
 </script>

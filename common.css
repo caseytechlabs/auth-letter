@@ -78,34 +78,14 @@ label{
 }
 input[type=text], input[type=date], select{
   width:100%;
+  height:38px;
   padding:8px 10px;
   border:1px solid #c7c7c7;
   border-radius:6px;
   font-size:14px;
   font-family:inherit;
   background:#fff;
-}
-/* iOS/mobile date inputs show no placeholder-like hint when empty (unlike
-   desktop's native "mm/dd/yyyy"), so an empty field just looks like a blank
-   box. This overlay fakes that hint, but only on coarse-pointer (touch)
-   devices — desktop already has its own native placeholder, and showing
-   both at once renders as garbled overlapping text. JS toggles the
-   .is-empty class on the wrapper; this class only has a visual effect
-   inside the touch-device media query. */
-.date-field{position:relative;}
-.date-field input[type=date]{position:relative;}
-.date-placeholder{
-  display:none;
-  position:absolute;
-  left:11px;
-  top:50%;
-  transform:translateY(-50%);
-  color:#999;
-  font-size:14px;
-  pointer-events:none;
-}
-@media (pointer:coarse){
-  .date-field.is-empty .date-placeholder{display:block;}
+  box-sizing:border-box;
 }
 input:focus, select:focus{
   outline:2px solid var(--navy-dim);
@@ -113,6 +93,8 @@ input:focus, select:focus{
 }
 .row{display:grid; gap:12px; margin-bottom:12px;}
 .row.two{grid-template-columns:1fr 1fr;}
+.row.two > *, .row.three > *{min-width:0;}
+.date-field input[type=date]{min-width:0; width:100%;}
 .row.three{grid-template-columns:1fr 1fr 1fr;}
 .owner-select-row{display:flex; gap:8px; align-items:flex-end; margin-bottom:12px;}
 .owner-select-row select{flex:1;}
