@@ -95,16 +95,14 @@ input[type=date]{
   appearance:none;
   min-width:0;
 }
-.unit-period-row{grid-template-columns: 0.7fr 0.7fr 1.6fr;}
+.unit-period-row{grid-template-columns: 1fr 1fr 1fr;}
 input:focus, select:focus{
   outline:2px solid var(--navy-dim);
   outline-offset:1px;
 }
 .row{display:grid; gap:12px; margin-bottom:12px;}
 .row.two{grid-template-columns:1fr 1fr;}
-.row.two > *, .row.three > *, .unit-period-row > *{min-width:0;}
-.date-field input[type=date]{min-width:0; width:100%;}
-.row.three{grid-template-columns:1fr 1fr 1fr;}
+.row.two > *, .unit-period-row > *{min-width:0;}
 .owner-select-row{display:flex; gap:8px; align-items:flex-end; margin-bottom:12px;}
 .owner-select-row select{flex:1;}
 button{
