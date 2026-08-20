@@ -6,6 +6,7 @@
 <title>Jazz Residences — Authorization Letter Generator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <link rel="stylesheet" href="common.css">
 <link rel="stylesheet" href="jazz.css">
 <link rel="stylesheet" href="air.css">
@@ -106,6 +107,11 @@
         <tbody id="guestBody"></tbody>
       </table>
       <button class="btn-secondary add-guest" id="addGuest">+ Add guest</button>
+      <div class="id-upload-row">
+        <label for="idUpload">Scan ID(s) to add guests</label>
+        <input type="file" id="idUpload" accept="image/*" multiple>
+        <div class="status-msg" id="idScanStatus"></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -596,6 +602,18 @@ function addGuestRow(prefill){
   renderGuestForm();
   renderPreview();
 }
+function fillOrAddGuest(prefill){
+  const empty = guests.find(g => !g.name.trim());
+  if(empty){
+    empty.name = prefill?.name || '';
+    empty.idType = prefill?.idType || ID_TYPES[0];
+    empty.relationship = prefill?.relationship || 'Guest';
+    renderGuestForm();
+    renderPreview();
+  } else {
+    addGuestRow(prefill);
+  }
+}
 function removeGuestRow(id){
   guests = guests.filter(g => g.id !== id);
   renderGuestForm();
@@ -631,6 +649,102 @@ function renderGuestForm(){
 }
 function escapeAttr(s){ return (s||'').replace(/"/g, '&quot;'); }
 document.getElementById('addGuest').addEventListener('click', () => addGuestRow());
+
+/* ---------------- ID scan -> guest name ----------------
+   Best-effort OCR via Tesseract.js (runs entirely in the browser — the
+   image never leaves the device). ID layouts vary too much to parse
+   reliably, so this only produces a starting guess; the name field
+   stays a normal editable input either way. */
+const ID_LINE_BLACKLIST = [
+  'republic', 'philippines', 'pilipinas', 'republika', 'department', 'transportation',
+  'license', 'lisensya', 'passport', 'passaporte', 'government', 'pamahalaan',
+  'identification', 'identity', 'card', 'karta', 'signature', 'lagda',
+  'address', 'tirahan', 'birth', 'kapanganakan', 'sex', 'kasarian', 'nationality',
+  'nasyonalidad', 'blood type', 'weight', 'height', 'expiration', 'expiry',
+  'date issued', 'agency', 'authority', 'ssn', 'sss', 'tin', 'philhealth',
+  'pag-ibig', 'gsis', 'student', 'employee', 'company', 'corp', 'university',
+  'college', 'school', 'restrictions', 'conditions', 'class', 'no.', 'number'
+];
+const ID_LABEL_PATTERNS = [
+  /(?:full\s*name|name)\s*[:\-]\s*([A-Za-z ,.'-]{4,60})/i,
+];
+function guessNameFromOcrText(text){
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  for(const pattern of ID_LABEL_PATTERNS){
+    for(const line of rawLines){
+      const m = line.match(pattern);
+      if(m && m[1].trim().length >= 4) return titleCase(m[1].trim());
+    }
+  }
+  let best = null;
+  for(const line of rawLines){
+    const lower = line.toLowerCase();
+    if(ID_LINE_BLACKLIST.some(w => lower.includes(w))) continue;
+    if(!/^[A-Za-z ,.'-]{4,40}$/.test(line)) continue;
+    const words = line.split(/\s+/).filter(Boolean);
+    if(words.length < 2 || words.length > 5) continue;
+    const letters = line.replace(/[^A-Za-z]/g, '');
+    if(letters.length < 4) continue;
+    const upperRatio = (letters.match(/[A-Z]/g) || []).length / letters.length;
+    if(upperRatio < 0.7) continue; // ID names are typically printed in caps
+    if(!best || line.length > best.length) best = line;
+  }
+  return best ? titleCase(best) : '';
+}
+function titleCase(s){
+  return s.toLowerCase().replace(/(^|[\s,.'-])([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+}
+function guessIdTypeFromOcrText(text){
+  const lower = text.toLowerCase();
+  if(lower.includes('passport')) return 'Passport';
+  if(lower.includes('driver')) return "Driver's License";
+  if(lower.includes('student')) return 'Student ID';
+  if(lower.includes('employee') || lower.includes('company')) return 'Company ID';
+  return "Gov't ID";
+}
+let idScanWorker = null;
+async function getIdScanWorker(){
+  if(!idScanWorker){
+    idScanWorker = await Tesseract.createWorker('eng');
+  }
+  return idScanWorker;
+}
+async function scanIdFiles(files){
+  const statusEl = document.getElementById('idScanStatus');
+  statusEl.classList.remove('error');
+  const input = document.getElementById('idUpload');
+  input.disabled = true;
+  let added = 0;
+  try{
+    const worker = await getIdScanWorker();
+    for(let i = 0; i < files.length; i++){
+      statusEl.textContent = `Scanning ID ${i + 1} of ${files.length}…`;
+      try{
+        const { data } = await worker.recognize(files[i]);
+        const name = guessNameFromOcrText(data.text || '');
+        const idType = guessIdTypeFromOcrText(data.text || '');
+        fillOrAddGuest({ name, idType, relationship: 'Guest' });
+        added++;
+      }catch(e){
+        console.error('ID scan failed for', files[i].name, e);
+        fillOrAddGuest({ name: '', idType: ID_TYPES[0], relationship: 'Guest' });
+      }
+    }
+    statusEl.textContent = added === files.length
+      ? `Added ${added} guest${added === 1 ? '' : 's'} from scanned ID${files.length === 1 ? '' : 's'} — check the name field${added === 1 ? '' : 's'}.`
+      : `Added ${added} of ${files.length} guests — some scans failed, check names.`;
+  }catch(e){
+    console.error('ID scan setup failed', e);
+    statusEl.textContent = 'Could not scan ID(s). Add the guest manually.';
+    statusEl.classList.add('error');
+  }
+  input.disabled = false;
+  input.value = '';
+}
+document.getElementById('idUpload').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files || []);
+  if(files.length) scanIdFiles(files);
+});
 
 /* ---------------- preview rendering ---------------- */
 function fmtDateShort(iso){
@@ -679,8 +793,6 @@ function renderPreview(){
     const img = document.createElement('img');
     img.src = liveSig;
     sigImgWrap.appendChild(img);
-  } else {
-    sigImgWrap.innerHTML = '<div style="height:4px"></div>';
   }
 
   fitLetterToViewport();

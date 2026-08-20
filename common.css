@@ -152,6 +152,13 @@ canvas.sig-pad{
   font-size:15px; line-height:1; padding:0;
 }
 .add-guest{margin-top:6px;}
+.id-upload-row{margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+.id-upload-row label{margin-bottom:6px;}
+.id-upload-row input[type=file]{
+  width:100%;
+  font-size:12px;
+  padding:6px 0;
+}
 
 .actions-bar{
   display:flex; gap:10px; flex-wrap:wrap;
@@ -199,6 +206,13 @@ canvas.sig-pad{
   box-shadow:0 4px 18px rgba(0,0,0,0.15);
   flex-shrink:0;
   transform-origin: top left;
+}
+#pv-sig-img{
+  height:20px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  overflow:visible;
 }
 .letter-header-img{
   display:block;
