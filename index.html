@@ -189,7 +189,10 @@
     padding:20px;
     display:flex;
     justify-content:center;
-    overflow-x:auto;
+    overflow:hidden;
+  }
+  #letterFitWrap{
+    overflow:hidden;
   }
   #letter{
     width:816px;
@@ -200,6 +203,7 @@
     color:#111;
     box-shadow:0 4px 18px rgba(0,0,0,0.15);
     flex-shrink:0;
+    transform-origin: top left;
   }
   .letter-header{
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -313,7 +317,7 @@
       <div class="row">
         <div>
           <label for="ownerName">Owner / representative name (printed)</label>
-          <input type="text" id="ownerName" placeholder="e.g. Czarina Robles - Dan Ryan Kaabay">
+          <input type="text" id="ownerName" placeholder="Full Name">
         </div>
       </div>
 
@@ -335,11 +339,11 @@
       <div class="row three">
         <div>
           <label for="tower">Tower</label>
-          <input type="text" id="tower" placeholder="A">
+          <input type="text" id="tower" placeholder="">
         </div>
         <div>
           <label for="unit">Unit</label>
-          <input type="text" id="unit" placeholder="1924">
+          <input type="text" id="unit" placeholder="">
         </div>
         <div>
           <label for="givenDate">Letter date</label>
@@ -385,7 +389,8 @@
   </div>
 
   <!-- ============ RIGHT: PREVIEW ============ -->
-  <div class="preview-shell">
+  <div class="preview-shell" id="previewShell">
+   <div id="letterFitWrap">
     <div id="letter">
       <div class="letter-header">
         <div class="brand-jazz">Jazz<small>R E S I D E N C E S</small></div>
@@ -464,6 +469,7 @@
         <li>All unit owners, tenants, and/or residents of the building, guest, building personnel, contractors and service providers are REQUIRED to follow and comply with the governing House Rules and Regulations to avoid property and personal risk as well as inconvenience as a consequence of violation/s of the provisions of the House Rules.</li>
       </ol>
     </div>
+   </div>
   </div>
 
 </div>
@@ -801,7 +807,30 @@ function renderPreview(){
   } else {
     sigImgWrap.innerHTML = '<div style="height:44px"></div>';
   }
+
+  fitLetterToViewport();
 }
+
+/* Shrink the fixed-width letter to fit narrow phone screens instead of
+   forcing horizontal scrolling. Uses a CSS transform on #letter itself,
+   sized by an outer wrapper so no extra blank space is left over. The
+   PDF export always resets this to 1:1 first, so print/download quality
+   is unaffected. */
+function fitLetterToViewport(){
+  const shell = document.getElementById('previewShell');
+  const wrap = document.getElementById('letterFitWrap');
+  const letterEl = document.getElementById('letter');
+  if(!shell || !wrap || !letterEl) return;
+  const available = shell.clientWidth - 40; // minus shell's own padding
+  const naturalWidth = 816;
+  const naturalHeight = letterEl.offsetHeight; // unaffected by transform on itself
+  let scale = available < naturalWidth ? Math.max(0.28, available / naturalWidth) : 1;
+  letterEl.style.transform = scale < 1 ? `scale(${scale})` : 'none';
+  wrap.style.width = Math.round(naturalWidth * scale) + 'px';
+  wrap.style.height = Math.round(naturalHeight * scale) + 'px';
+}
+window.addEventListener('resize', fitLetterToViewport);
+
 function escapeHtml(s){
   return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
@@ -815,8 +844,17 @@ let lastPdfUrl = null; // revoke previous blob url before making a new one
 
 async function buildPdfBlob(){
   const node = document.getElementById('letter');
-  const nodeRect = node.getBoundingClientRect(); // unscaled CSS px, matches on-screen layout
+  // On phones the letter is visually shrunk (CSS transform) to fit the
+  // screen. Reset that before capturing so the PDF is always rendered at
+  // full, sharp resolution — using offsetWidth/Height (unaffected by the
+  // element's own transform) rather than getBoundingClientRect (which
+  // would report the shrunk size).
+  const prevTransform = node.style.transform;
+  node.style.transform = 'none';
+  void node.offsetHeight; // force layout to settle before measuring/capturing
+  const nodeSize = { width: node.offsetWidth, height: node.offsetHeight };
   const canvasImg = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+  node.style.transform = prevTransform;
   const imgData = canvasImg.toDataURL('image/jpeg', 0.95);
   const { jsPDF } = window.jspdf;
 
@@ -827,8 +865,8 @@ async function buildPdfBlob(){
   // rules) look missing. A single page guarantees everything is visible
   // by scrolling, matching what you see in the on-screen preview.
   const pxToPt = 72 / 96;
-  const pageWidthPt = nodeRect.width * pxToPt;
-  const pageHeightPt = nodeRect.height * pxToPt;
+  const pageWidthPt = nodeSize.width * pxToPt;
+  const pageHeightPt = nodeSize.height * pxToPt;
   const pdf = new jsPDF({ unit: 'pt', format: [pageWidthPt, pageHeightPt] });
   pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthPt, pageHeightPt);
 
