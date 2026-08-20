@@ -826,6 +826,42 @@ function escapeHtml(s){
   document.getElementById(id).addEventListener('input', renderPreview);
 });
 
+/* ---------------- stay-period date constraints ----------------
+   "from" can't be before today; "to" can't be before "from" (same day
+   is fine for both). The min attribute both blocks earlier picks in the
+   native picker and is re-validated on change in case a value was typed
+   or left over from before the constraint tightened. */
+(function setupDateConstraints(){
+  const dateFrom = document.getElementById('dateFrom');
+  const dateTo = document.getElementById('dateTo');
+  const todayStr = new Date().toISOString().slice(0,10);
+  dateFrom.min = todayStr;
+
+  function syncToMin(){
+    dateTo.min = dateFrom.value || todayStr;
+    if(dateTo.value && dateTo.value < dateTo.min){
+      dateTo.value = '';
+      refreshDateHasValue(dateTo);
+      renderPreview();
+    }
+  }
+  syncToMin();
+  dateFrom.addEventListener('change', () => {
+    if(dateFrom.value && dateFrom.value < todayStr){
+      dateFrom.value = '';
+      refreshDateHasValue(dateFrom);
+    }
+    syncToMin();
+  });
+  dateTo.addEventListener('change', () => {
+    if(dateTo.value && dateTo.value < dateTo.min){
+      dateTo.value = '';
+      refreshDateHasValue(dateTo);
+      renderPreview();
+    }
+  });
+})();
+
 /* ---------------- PDF export / print ---------------- */
 let lastPdfUrl = null; // revoke previous blob url before making a new one
 
