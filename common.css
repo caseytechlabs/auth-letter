@@ -95,13 +95,17 @@ input[type=date]{
   appearance:none;
   min-width:0;
   color:#1c1c1c;
+  -webkit-text-fill-color:#1c1c1c;
+  accent-color:#1c1c1c;
 }
 input[type=date]::-webkit-datetime-edit,
 input[type=date]::-webkit-datetime-edit-text,
 input[type=date]::-webkit-datetime-edit-day-field,
 input[type=date]::-webkit-datetime-edit-month-field,
-input[type=date]::-webkit-datetime-edit-year-field{
+input[type=date]::-webkit-datetime-edit-year-field,
+input[type=date]::-webkit-date-and-time-value{
   color:#1c1c1c;
+  -webkit-text-fill-color:#1c1c1c;
 }
 .unit-period-row{grid-template-columns: 1fr 1fr 1fr;}
 input:focus, select:focus{
