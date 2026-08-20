@@ -94,16 +94,18 @@ input[type=date]{
   -webkit-appearance:none;
   appearance:none;
   min-width:0;
-  color:#1c1c1c;
-  -webkit-text-fill-color:#1c1c1c;
   accent-color:#1c1c1c;
 }
-input[type=date]::-webkit-datetime-edit,
-input[type=date]::-webkit-datetime-edit-text,
-input[type=date]::-webkit-datetime-edit-day-field,
-input[type=date]::-webkit-datetime-edit-month-field,
-input[type=date]::-webkit-datetime-edit-year-field,
-input[type=date]::-webkit-date-and-time-value{
+/* Only force black once a real value is picked (JS toggles .has-value) —
+   otherwise this same override was painting the empty "no date yet"
+   state black too, instead of leaving it blank/placeholder-like. */
+input[type=date].has-value,
+input[type=date].has-value::-webkit-datetime-edit,
+input[type=date].has-value::-webkit-datetime-edit-text,
+input[type=date].has-value::-webkit-datetime-edit-day-field,
+input[type=date].has-value::-webkit-datetime-edit-month-field,
+input[type=date].has-value::-webkit-datetime-edit-year-field,
+input[type=date].has-value::-webkit-date-and-time-value{
   color:#1c1c1c;
   -webkit-text-fill-color:#1c1c1c;
 }

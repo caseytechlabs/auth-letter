@@ -973,6 +973,15 @@ document.getElementById('downloadPdf').addEventListener('click', downloadPdf);
 document.getElementById('printLetter').addEventListener('click', printLetter);
 
 /* ---------------- init ---------------- */
+function refreshDateHasValue(input){
+  input.classList.toggle('has-value', !!input.value);
+}
+document.querySelectorAll('input[type=date]').forEach(input => {
+  refreshDateHasValue(input);
+  input.addEventListener('input', () => refreshDateHasValue(input));
+  input.addEventListener('change', () => refreshDateHasValue(input));
+});
+
 (async function init(){
   applyCondoBody();
   try{
@@ -982,7 +991,9 @@ document.getElementById('printLetter').addEventListener('click', printLetter);
   }
   addGuestRow({ name: '', idType: "Gov't ID", relationship: 'Guest' });
   const today = new Date().toISOString().slice(0,10);
-  document.getElementById('givenDate').value = today;
+  const givenDateEl = document.getElementById('givenDate');
+  givenDateEl.value = today;
+  refreshDateHasValue(givenDateEl);
   renderPreview();
 })();
 </script>
