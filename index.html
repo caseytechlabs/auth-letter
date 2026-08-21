@@ -742,9 +742,9 @@ async function buildPdfBlob(){
   pdf.addImage(imgData, 'JPEG', offsetXPt, 0, drawWidthPt, drawHeightPt);
 
   const unit = document.getElementById('unit').value || 'unit';
-  const ownerN = document.getElementById('ownerName').value || 'owner';
+  const guest1FirstName = (guests[0]?.name || '').trim().split(/\s+/)[0] || 'guest';
   const condoLabel = document.getElementById('condoSelect').selectedOptions[0].textContent.replace(/\s+/g, '');
-  const filename = `Authorization-Letter-${condoLabel}-${unit}-${slug(ownerN)}.pdf`;
+  const filename = `Authorization-Letter-${condoLabel}-${unit}-${slug(guest1FirstName)}.pdf`;
   const blob = pdf.output('blob');
   if(lastPdfUrl) URL.revokeObjectURL(lastPdfUrl);
   const url = URL.createObjectURL(blob);
