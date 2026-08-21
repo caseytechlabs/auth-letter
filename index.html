@@ -779,11 +779,19 @@ async function downloadPdf(){
     // saving it, which looks identical to the "Open PDF to Print" button.
     // The Web Share API's file-sharing lets the user pick "Save to Files"
     // (or similar) from the native share sheet, which is an actual save.
+    // Desktop browsers (including macOS Safari, which also implements
+    // navigator.share) already download blob: links directly and correctly,
+    // so only take the share-sheet detour on actual mobile devices.
     let handled = false;
+    const isMobile = detectPlatform() !== 'desktop';
     try{
       const file = new File([blob], filename, { type: 'application/pdf' });
-      if(navigator.canShare && navigator.canShare({ files: [file] })){
-        await navigator.share({ files: [file], title: filename });
+      if(isMobile && navigator.canShare && navigator.canShare({ files: [file] })){
+        // Sharing "title" alongside "files" makes iOS Safari treat it as a
+        // second, separate shareable text item — "Save to Files" then saves
+        // both the PDF and a stray .txt containing that title string. The
+        // filename is already on the File object itself, so omit title/text.
+        await navigator.share({ files: [file] });
         statusEl.textContent = 'Choose "Save to Files" (or similar) from the share menu to download.';
         handled = true;
       }
