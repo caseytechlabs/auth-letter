@@ -28,8 +28,20 @@
 
   <header class="top">
     <h1 id="pageTitle">Authorization Letter — Jazz Residences</h1>
-    <span>Fill once, reuse owner signatures next time</span>
+    <div class="header-right">
+      <span>Fill once, reuse owner signatures next time</span>
+      <button class="btn-secondary" id="installBtn">Install App</button>
+    </div>
   </header>
+
+  <div class="install-overlay" id="installOverlay">
+    <div class="install-card">
+      <button class="install-close" id="installClose" aria-label="Close">✕</button>
+      <h2>Add to Home Screen</h2>
+      <div id="installSteps"></div>
+      <button class="btn-primary install-got-it" id="installGotIt">Got it</button>
+    </div>
+  </div>
 
   <!-- ============ LEFT: FORM ============ -->
   <div>
@@ -872,6 +884,44 @@ if('serviceWorker' in navigator){
     });
   });
 }
+
+/* ---------------- "Add to Home Screen" instructions ---------------- */
+function detectPlatform(){
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if(isIOS) return 'ios';
+  if(/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+function installStepsHtml(){
+  const platform = detectPlatform();
+  if(platform === 'ios'){
+    return `<ol>
+      <li>Tap the <strong>Share</strong> icon (square with an arrow pointing up) in Safari's toolbar.</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong> in the top-right corner.</li>
+    </ol>`;
+  }
+  if(platform === 'android'){
+    return `<ol>
+      <li>Tap the <strong>⋮</strong> menu (top-right of Chrome).</li>
+      <li>Tap <strong>Add to Home screen</strong> (or <strong>Install app</strong>).</li>
+      <li>Confirm by tapping <strong>Add</strong> or <strong>Install</strong>.</li>
+    </ol>`;
+  }
+  return `<p>Look for an install icon in your browser's address bar, or open the browser menu and choose <strong>Install</strong> / <strong>Add to Home screen</strong>.</p>`;
+}
+const installOverlay = document.getElementById('installOverlay');
+document.getElementById('installBtn').addEventListener('click', () => {
+  document.getElementById('installSteps').innerHTML = installStepsHtml();
+  installOverlay.classList.add('open');
+});
+document.getElementById('installClose').addEventListener('click', () => installOverlay.classList.remove('open'));
+document.getElementById('installGotIt').addEventListener('click', () => installOverlay.classList.remove('open'));
+installOverlay.addEventListener('click', (e) => {
+  if(e.target === installOverlay) installOverlay.classList.remove('open');
+});
 </script>
 </body>
 </html>
